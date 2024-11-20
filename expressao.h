@@ -8,14 +8,6 @@ typedef struct {
     float Valor;       // Valor calculado da expressão
 } Expressao;
 
-// Funções da pilha de números
-void pushNum(float valor);   // Empilha um número
-float popNum();              // Desempilha um número
-
-// Funções da pilha de strings
-void pushStr(const char *str);    // Empilha uma string
-char *popStr();                  // Desempilha uma string
-
 // Função para calcular o valor de uma expressão pós-fixada
 float getValor(char *Str);
 
