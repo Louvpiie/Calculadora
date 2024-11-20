@@ -22,6 +22,14 @@ typedef struct {
 static PilhaStr pilhaStr = {{0}, -1};  // Pilha global para strings
 
 // Funções da pilha de números
+void pushNum(float valor);   // Empilha um número
+float popNum();              // Desempilha um número
+
+// Funções da pilha de strings
+void pushStr(const char *str);    // Empilha uma string
+char *popStr();                  // Desempilha uma string
+
+// Funções da pilha de números
 void pushNum(float valor) {
     pilha.numeros[++(pilha.topoNum)] = valor;
 }
