@@ -1,35 +1,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <math.h>
+#include <ctype.h>
 #include "expressao.h"
 
-// Estrutura de pilha para números e strings
+// Estrutura para a pilha de números
 typedef struct {
     float numeros[512];
     int topoNum;
-
-    char strings[512][512];
-    int topoStr;
 } Pilha;
 
-void pushNum(Pilha *p, float valor) {
-    p->numeros[++(p->topoNum)] = valor;
+static Pilha pilha = {{0}, -1};  // Pilha global para números
+
+// Estrutura para a pilha de strings
+typedef struct {
+    char strings[512][512];
+    int topoStr;
+} PilhaStr;
+
+static PilhaStr pilhaStr = {{0}, -1};  // Pilha global para strings
+
+// Funções da pilha de números
+void pushNum(float valor) {
+    pilha.numeros[++(pilha.topoNum)] = valor;
 }
 
-float popNum(Pilha *p) {
-    return p->numeros[(p->topoNum)--];
+float popNum() {
+    return pilha.numeros[(pilha.topoNum)--];
 }
 
-void pushStr(Pilha *p, const char *str) {
-    strcpy(p->strings[++(p->topoStr)], str);
+// Funções da pilha de strings
+void pushStr(const char *str) {
+    strcpy(pilhaStr.strings[++(pilhaStr.topoStr)], str);
 }
 
-char *popStr(Pilha *p) {
-    return p->strings[(p->topoStr)--];
+char *popStr() {
+    return pilhaStr.strings[(pilhaStr.topoStr)--];
 }
 
+// Função para calcular as operações binárias
 float calculaOperacao(float op1, float op2, char operador) {
     switch (operador) {
         case '+': return op1 + op2;
@@ -41,62 +51,66 @@ float calculaOperacao(float op1, float op2, char operador) {
     }
 }
 
+// Função para calcular funções unárias como sen, cos, tan, etc.
 float calculaFuncao(float operando, const char *funcao) {
-    if (strcmp(funcao, "sen") == 0) return sin(operando * M_PI / 180);
+    if (strcmp(funcao, "sin") == 0) return sin(operando * M_PI / 180);
     if (strcmp(funcao, "cos") == 0) return cos(operando * M_PI / 180);
-    if (strcmp(funcao, "tg") == 0) return tan(operando * M_PI / 180);
+    if (strcmp(funcao, "tan") == 0) return tan(operando * M_PI / 180);
     if (strcmp(funcao, "log") == 0) return log10(operando);
     if (strcmp(funcao, "raiz") == 0) return sqrt(operando);
     return 0;
 }
 
-char *getFormaInFixa(char *Str) {
-    static char resultado[512];
-    Pilha pilha = {{0}, -1, {{0}}, -1};
-    char token[64];
+// Função para calcular o valor de uma expressão pós-fixada
+float getValor(char *Str) {
     char temp[512];
     strcpy(temp, Str);
-
     char *tok = strtok(temp, " ");
+
     while (tok != NULL) {
         if (isdigit(tok[0]) || (tok[0] == '-' && isdigit(tok[1]))) {
-            pushStr(&pilha, tok);
+            pushNum(atof(tok)); // Empilha números
         } else if (strlen(tok) == 1) { // Operadores binários
-            char op2[512], op1[512], expr[512];
-            strcpy(op2, popStr(&pilha));
-            strcpy(op1, popStr(&pilha));
-            sprintf(expr, "(%s %s %s)", op1, tok, op2);
-            pushStr(&pilha, expr);
+            float op2 = popNum();
+            float op1 = popNum();
+            pushNum(calculaOperacao(op1, op2, tok[0])); // Executa operação binária
         } else { // Funções unárias
-            char op[512], expr[512];
-            strcpy(op, popStr(&pilha));
-            sprintf(expr, "%s(%s)", tok, op);
-            pushStr(&pilha, expr);
+            float op = popNum();
+            pushNum(calculaFuncao(op, tok)); // Executa função unária
         }
         tok = strtok(NULL, " ");
     }
-    strcpy(resultado, popStr(&pilha));
-    return resultado;
+
+    return popNum(); // Retorna o resultado final
 }
 
-float getValor(char *Str) {
-    Pilha pilha = {{0}, -1};
+// Função para converter uma expressão pós-fixada para a forma infixa
+char *getFormaInFixa(char *Str) {
+    static char resultado[512];
     char temp[512];
     strcpy(temp, Str);
+
+    // Resetar pilha de expressões
+    pilhaStr.topoStr = -1;
 
     char *tok = strtok(temp, " ");
     while (tok != NULL) {
         if (isdigit(tok[0]) || (tok[0] == '-' && isdigit(tok[1]))) {
-            pushNum(&pilha, atof(tok));
+            pushStr(tok); // Empilha números como strings
         } else if (strlen(tok) == 1) { // Operadores binários
-            float op2 = popNum(&pilha);
-            float op1 = popNum(&pilha);
-            pushNum(&pilha, calculaOperacao(op1, op2, tok[0]));
+            char op2[512], op1[512], expr[512];
+            strcpy(op2, popStr());
+            strcpy(op1, popStr());
+            sprintf(expr, "(%s %s %s)", op1, tok, op2); // Formata a operação binária
+            pushStr(expr); // Empilha a expressão infixa
         } else { // Funções unárias
-            float op = popNum(&pilha);
-            pushNum(&pilha, calculaFuncao(op, tok));
+            char op[512], expr[512];
+            strcpy(op, popStr());
+            sprintf(expr, "%s(%s)", tok, op); // Formata a função unária
+            pushStr(expr); // Empilha a expressão infixa
         }
         tok = strtok(NULL, " ");
     }
-    return popNum(&pilha);
+
+    return popStr(); // Retorna a expressão infixa
 }
